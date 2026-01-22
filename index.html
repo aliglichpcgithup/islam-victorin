@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Исламская Викторина: Путь Знаний</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f4f8;
+            color: #1a202c;
+            overflow-y: auto;
+            min-height: 100vh;
+        }
+
+        body::-webkit-scrollbar {
+            width: 0px;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .progress-bar {
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .timer-bar {
+            transition: width 1s linear;
+        }
+
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .correct {
+            background-color: #10b981 !important;
+            color: white !important;
+            border-color: #10b981 !important;
+        }
+
+        .wrong {
+            background-color: #ef4444 !important;
+            color: white !important;
+            border-color: #ef4444 !important;
+        }
+
+        #side-menu {
+            transition: transform 0.3s ease-in-out;
+            z-index: 50;
+        }
+        .menu-hidden {
+            transform: translateX(-100%);
+        }
+        .menu-visible {
+            transform: translateX(0);
+        }
+
+        @keyframes pulse-timer {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .timer-low {
+            animation: pulse-timer 0.5s infinite;
+            background-color: #ef4444 !important;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <!-- Side Menu Overlay -->
+    <div id="menu-overlay" class="fixed inset-0 bg-black/50 hidden z-40" onclick="toggleMenu()"></div>
+    
+    <!-- Side Menu -->
+    <div id="side-menu" class="fixed top-0 left-0 h-full w-64 bg-white shadow-2xl menu-hidden p-6 flex flex-col">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-bold text-emerald-700 uppercase tracking-tight">Меню</h2>
+            <button onclick="toggleMenu()" class="text-gray-500 hover:text-red-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <nav class="flex-grow space-y-4">
+            <div class="p-4 bg-emerald-50 rounded-xl">
+                <p class="text-xs text-emerald-600 font-semibold uppercase mb-1">Статистика</p>
+                <div class="flex justify-between text-sm text-gray-700">
+                    <span>Пройдено:</span>
+                    <span id="menu-answered-count" class="font-bold">0</span>
+                </div>
+                <div class="flex justify-between text-sm text-gray-700">
+                    <span>Всего вопросов:</span>
+                    <span id="menu-total-count" class="font-bold">0</span>
+                </div>
+            </div>
+
+            <button onclick="toggleMenu()" class="w-full flex items-center space-x-3 p-3 hover:bg-gray-100 rounded-lg transition text-gray-700 font-medium">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Продолжить игру</span>
+            </button>
+
+            <button onclick="resetGame()" class="w-full flex items-center space-x-3 p-3 hover:bg-red-50 rounded-lg transition text-red-600 font-medium">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Сбросить историю</span>
+            </button>
+        </nav>
+
+        <div class="mt-auto pt-6 border-t text-center">
+            <p class="text-[10px] text-gray-400">Исламская Викторина v10.2</p>
+        </div>
+    </div>
+
+    <div id="game-container" class="max-w-md w-full glass rounded-3xl shadow-2xl overflow-hidden relative my-8">
+        <!-- Header -->
+        <div class="bg-emerald-600 p-6 text-white relative">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="toggleMenu()" class="p-2 -ml-2 hover:bg-emerald-700 rounded-lg transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                
+                <div class="flex flex-col items-center">
+                    <span class="text-xs opacity-80 uppercase tracking-widest text-emerald-100">Время</span>
+                    <span id="timer-text" class="text-xl font-bold font-mono">20</span>
+                </div>
+                
+                <div class="flex flex-col items-end">
+                    <span class="text-xs opacity-80 uppercase tracking-widest text-emerald-100">Очки</span>
+                    <span id="score-display" class="text-xl font-bold">0</span>
+                </div>
+            </div>
+            
+            <div class="flex justify-between items-end mb-2">
+                <div>
+                    <h1 class="text-2xl font-bold uppercase tracking-tight leading-none">Путь Знаний</h1>
+                    <p id="difficulty-label" class="text-[10px] opacity-90 italic text-yellow-200 font-medium">Сложность: Легкая</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] opacity-70 uppercase tracking-tighter">Уровень</span>
+                    <div id="lvl-display" class="text-xl font-bold leading-none">1</div>
+                </div>
+            </div>
+            
+            <div class="absolute bottom-0 left-0 w-full h-1 bg-emerald-800">
+                <div id="progress" class="progress-bar h-full bg-yellow-400" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="w-full h-1.5 bg-gray-200">
+            <div id="timer-bar" class="timer-bar h-full bg-emerald-400" style="width: 100%"></div>
+        </div>
+
+        <div id="quiz-screen" class="p-8">
+            <div id="question-text" class="text-lg font-semibold text-gray-800 mb-6 min-h-[80px] leading-relaxed text-center">
+                Загрузка вопроса...
+            </div>
+
+            <div id="options-grid" class="grid gap-3"></div>
+
+            <div id="feedback" class="mt-6 text-center font-bold h-6 opacity-0 transition-opacity duration-300 text-sm"></div>
+        </div>
+
+        <div class="px-8 pb-6 bg-transparent flex justify-center items-center">
+            <div class="text-[10px] text-gray-400 flex space-x-4">
+                <span>Макс: 10 баллов</span>
+                <span>•</span>
+                <span>Прогресс: <span id="answered-count">0</span> / <span id="total-count">0</span></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questionBank = {
+            easy: [
+                { id: "e1", q: "Сколько столпов в Исламе?", a: ["4", "5", "6", "3"], c: 1 },
+                { id: "e2", q: "В каком городе родился Пророк Мухаммад (мир ему)?", a: ["Медина", "Мекка", "Иерусалим", "Таиф"], c: 1 },
+                { id: "e3", q: "Как называется священная книга мусульман?", a: ["Тора", "Инжил", "Коран", "Забур"], c: 2 },
+                { id: "e4", q: "Сколько раз в день мусульманин совершает обязательный намаз?", a: ["3", "5", "2", "4"], c: 1 },
+                { id: "e5", q: "Как называется месяц обязательного поста?", a: ["Рамадан", "Мухаррам", "Шавваль", "Сафар"], c: 0 },
+                { id: "e6", q: "Кто был первым человеком и пророком?", a: ["Иса", "Адам", "Нух", "Ибрахим"], c: 1 },
+                { id: "e7", q: "Направление на Каабу называется...", a: ["Михраб", "Кыбла", "Минбар", "Хадж"], c: 1 },
+                { id: "e8", q: "Кто был первым муэдзином?", a: ["Абу Бакр", "Билял ибн Рабах", "Умар", "Али"], c: 1 },
+                { id: "e9", q: "Как звали отца Пророка Мухаммада (мир ему)?", a: ["Абу Талиб", "Абдуллах", "Абдул-Мутталиб", "Хамза"], c: 1 },
+                { id: "e10", q: "Как называется праздник окончания поста?", a: ["Курбан-байрам", "Ураза-байрам", "Ашура", "Маулид"], c: 1 },
+                { id: "e11", q: "Сколько имен у Аллаха упомянуто в известном хадисе?", a: ["33", "99", "7", "114"], c: 1 },
+                { id: "e12", q: "На каком языке был ниспослан Коран?", a: ["Персидский", "Арабский", "Иврит", "Турецкий"], c: 1 },
+                { id: "e13", q: "Как называется утренний намаз?", a: ["Фаджр", "Зухр", "Аср", "Магриб"], c: 0 },
+                { id: "e14", q: "Кто является последним пророком Аллаха?", a: ["Иса", "Муса", "Мухаммад ﷺ", "Нух"], c: 2 },
+                { id: "e15", q: "Как называется ритуальное омовение перед намазом?", a: ["Никях", "Вуду (Тахарат)", "Зокат", "Хадж"], c: 1 }
+            ],
+            medium: [
+                { id: "m1", q: "В каком году произошла Хиджра (переселение в Медину)?", a: ["610 г.", "622 г.", "632 г.", "570 г."], c: 1 },
+                { id: "m2", q: "Как звали первую жену Пророка Мухаммада (мир ему)?", a: ["Айша", "Хадиджа", "Зайнаб", "Сауда"], c: 1 },
+                { id: "m3", q: "Какая сура Корана является самой длинной?", a: ["Аль-Имран", "Аль-Бакара", "Ан-Ниса", "Аль-Маида"], c: 1 },
+                { id: "m4", q: "Кто стал вторым праведным халифом?", a: ["Абу Бакр", "Умар ибн аль-Хаттаб", "Усман", "Али"], c: 1 },
+                { id: "m5", q: "Как звали ангела, передававшего откровения?", a: ["Микаил", "Джибриль", "Исрафил", "Азраил"], c: 1 },
+                { id: "m6", q: "Сколько лет длилось ниспослание Корана?", a: ["10 лет", "23 года", "40 лет", "13 лет"], c: 1 },
+                { id: "m7", q: "Кто был матерью Пророка Мухаммада (мир ему)?", a: ["Халима", "Амина", "Фатима", "Хауля"], c: 1 },
+                { id: "m8", q: "Как называется вечерняя молитва?", a: ["Зухр", "Магриб", "Иша", "Аср"], c: 1 },
+                { id: "m9", q: "Какая сура называется 'Матерью Корана'?", a: ["Аль-Ихляс", "Аль-Фатиха", "Аль-Бакара", "Йа Син"], c: 1 },
+                { id: "m10", q: "Как звали кормилицу Пророка Мухаммада ﷺ?", a: ["Амина", "Халима", "Шифа", "Сувайба"], c: 1 }
+            ],
+            hard: [
+                { id: "h1", q: "В какой битве мусульмане впервые столкнулись с курайшитами?", a: ["Ухуд", "Бадр", "Хайбар", "Мута"], c: 1 },
+                { id: "h2", q: "В какой суре 'Бисмилля' не стоит в начале?", a: ["Аль-Фатиха", "Ат-Тауба", "Ан-Намль", "Аль-Аляк"], c: 1 },
+                { id: "h3", q: "Кто из сподвижников был известен как 'Амин' (верный) этой уммы?", a: ["Абу Убайда", "Абу Бакр", "Умар", "Тальха"], c: 0 },
+                { id: "h4", q: "Сколько сур в Коране?", a: ["110", "114", "124", "99"], c: 1 },
+                { id: "h5", q: "Кто из сподвижников был назван 'Сайфуллах' (Меч Аллаха)?", a: ["Али", "Халид ибн аль-Валид", "Умар", "Хамза"], c: 1 },
+                { id: "h6", q: "Какое событие произошло в 10-й год пророчества?", a: ["Хиджра", "Год печали", "Битва при Бадре", "Взятие Мекки"], c: 1 },
+                { id: "h7", q: "Как звали сподвижника, который первым прочитал Коран вслух возле Каабы?", a: ["Абу Бакр", "Абдуллах ибн Масуд", "Умар", "Билял"], c: 1 },
+                { id: "h8", q: "В каком возрасте умер Пророк Мухаммад ﷺ?", a: ["60", "63", "65", "40"], c: 1 }
+            ]
+        };
+
+        const ALL_QUESTIONS = [...questionBank.easy, ...questionBank.medium, ...questionBank.hard];
+
+        let state = {
+            level: 1,
+            score: 0,
+            answeredIds: [],
+            currentOptions: [],
+            correctIdxInShuffle: -1
+        };
+
+        const MAX_TIME = 20;
+        let timeLeft = MAX_TIME;
+        let timerInterval = null;
+        let isPaused = false; // Состояние паузы для меню
+        const STORAGE_KEY = 'islamic_quiz_v10_scroll_fix';
+
+        function toggleMenu() {
+            const menu = document.getElementById('side-menu');
+            const overlay = document.getElementById('menu-overlay');
+            if (menu.classList.contains('menu-hidden')) {
+                menu.classList.replace('menu-hidden', 'menu-visible');
+                overlay.classList.remove('hidden');
+                isPaused = true; // Останавливаем игру
+            } else {
+                menu.classList.replace('menu-visible', 'menu-hidden');
+                overlay.classList.add('hidden');
+                isPaused = false; // Возобновляем игру
+            }
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                state.level = parsed.level || 1;
+                state.score = parsed.score || 0;
+                state.answeredIds = parsed.answeredIds || [];
+            }
+            document.getElementById('total-count').innerText = ALL_QUESTIONS.length;
+            document.getElementById('menu-total-count').innerText = ALL_QUESTIONS.length;
+            updateUI();
+        }
+
+        function saveProgress() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                level: state.level,
+                score: state.score,
+                answeredIds: state.answeredIds
+            }));
+        }
+
+        function updateUI() {
+            document.getElementById('lvl-display').innerText = state.level;
+            document.getElementById('score-display').innerText = state.score;
+            document.getElementById('answered-count').innerText = state.answeredIds.length;
+            document.getElementById('menu-answered-count').innerText = state.answeredIds.length;
+            
+            let phaseProgress = (state.answeredIds.length / ALL_QUESTIONS.length) * 100;
+            document.getElementById('progress').style.width = phaseProgress + '%';
+
+            const label = document.getElementById('difficulty-label');
+            if (state.level <= 15) label.innerText = "Сложность: Легкая";
+            else if (state.level <= 30) label.innerText = "Сложность: Средняя";
+            else label.innerText = "Сложность: Высокая";
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = MAX_TIME;
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                if (isPaused) return; // Если меню открыто, ничего не делаем
+
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timerText = document.getElementById('timer-text');
+            const timerBar = document.getElementById('timer-bar');
+            timerText.innerText = timeLeft;
+            const percent = (timeLeft / MAX_TIME) * 100;
+            timerBar.style.width = percent + '%';
+            
+            if (timeLeft <= 5) {
+                timerBar.classList.add('timer-low');
+                timerText.classList.add('text-red-200');
+            } else {
+                timerBar.classList.remove('timer-low');
+                timerText.classList.remove('text-red-200');
+            }
+        }
+
+        function handleTimeout() {
+            const feedback = document.getElementById('feedback');
+            feedback.style.opacity = '1';
+            feedback.innerText = "Время вышло!";
+            feedback.className = "mt-6 text-center font-bold text-red-500";
+            
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
+            buttons[state.correctIdxInShuffle].classList.add('correct');
+            
+            setTimeout(generateQuestion, 2000);
+        }
+
+        function shuffleAnswers(array, correctIdx) {
+            const correctText = array[correctIdx];
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return {
+                shuffled: newArray,
+                newCorrectIdx: newArray.indexOf(correctText)
+            };
+        }
+
+        function generateQuestion() {
+            const unused = ALL_QUESTIONS.filter(q => !state.answeredIds.includes(q.id));
+
+            if (unused.length === 0) {
+                document.getElementById('question-text').innerText = "Вы прошли все вопросы! История ответов будет сброшена для повторения.";
+                const grid = document.getElementById('options-grid');
+                grid.innerHTML = '<button onclick="resetGame()" class="w-full p-4 bg-emerald-600 text-white rounded-xl font-bold">Начать сначала</button>';
+                return;
+            }
+
+            const diff = state.level <= 15 ? 'easy' : (state.level <= 30 ? 'medium' : 'hard');
+            let preferred = unused.filter(q => {
+                if(diff === 'easy') return q.id.startsWith('e');
+                if(diff === 'medium') return q.id.startsWith('m');
+                return q.id.startsWith('h');
+            });
+
+            const finalSelection = preferred.length > 0 ? preferred : unused;
+            const q = finalSelection[Math.floor(Math.random() * finalSelection.length)];
+            
+            const { shuffled, newCorrectIdx } = shuffleAnswers(q.a, q.c);
+            state.currentQuestion = q;
+            state.currentOptions = shuffled;
+            state.correctIdxInShuffle = newCorrectIdx;
+
+            renderQuestion(q.q, shuffled);
+            startTimer();
+        }
+
+        function renderQuestion(text, options) {
+            const feedback = document.getElementById('feedback');
+            feedback.style.opacity = '0';
+            document.getElementById('question-text').innerText = text;
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+
+            options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn w-full p-4 text-left rounded-xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 font-medium text-gray-700 leading-tight";
+                btn.innerText = option;
+                btn.onclick = () => checkAnswer(index);
+                grid.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(idx) {
+            if (isPaused) return; // Запрещаем отвечать, если открыто меню
+
+            clearInterval(timerInterval);
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
+
+            const isCorrect = idx === state.correctIdxInShuffle;
+            const feedback = document.getElementById('feedback');
+            feedback.style.opacity = '1';
+
+            if (isCorrect) {
+                if (!state.answeredIds.includes(state.currentQuestion.id)) {
+                    state.answeredIds.push(state.currentQuestion.id);
+                }
+                
+                const timeBonus = Math.ceil(5 * (timeLeft / MAX_TIME));
+                const totalGained = 5 + timeBonus;
+                
+                state.score += totalGained;
+                state.level++;
+                
+                feedback.innerHTML = `Верно! <span class="text-xs ml-2 text-emerald-400">+${totalGained} баллов</span>`;
+                feedback.className = "mt-6 text-center font-bold text-emerald-600";
+                buttons[idx].classList.add('correct');
+            } else {
+                feedback.innerText = "Неверно. Запомните правильный ответ!";
+                feedback.className = "mt-6 text-center font-bold text-red-500";
+                buttons[idx].classList.add('wrong');
+                buttons[state.correctIdxInShuffle].classList.add('correct');
+            }
+
+            saveProgress();
+            updateUI();
+            setTimeout(generateQuestion, 2000);
+        }
+
+        function resetGame() {
+            if (confirm("Это полностью очистит прогресс. Начать заново?")) {
+                clearInterval(timerInterval);
+                state = { 
+                    level: 1, 
+                    score: 0, 
+                    answeredIds: [],
+                    currentOptions: [],
+                    correctIdxInShuffle: -1
+                };
+                saveProgress();
+                updateUI();
+                const menu = document.getElementById('side-menu');
+                if (menu.classList.contains('menu-visible')) toggleMenu();
+                generateQuestion();
+            }
+        }
+
+        window.onload = () => {
+            loadProgress();
+            generateQuestion();
+        };
+    </script>
+</body>
+</html>
